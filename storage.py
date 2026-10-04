@@ -1,4 +1,4 @@
-inventory = [
+initial_inventory = [
     {
         "id": 1,
         "barcode": "3017620422003",
@@ -20,3 +20,5 @@ inventory = [
         "ingredients": "Carbonated water, sugar, caramel color"
     }
 ]
+
+inventory = [item.copy() for item in initial_inventory]
