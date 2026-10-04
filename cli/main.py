@@ -3,6 +3,20 @@ import requests
 
 API_URL = "http://127.0.0.1:5000"
 
+def handle_request_error(error):
+    print(f"Unable to connect to the API: {error}")
+
+def make_request(method, endpoint, **kwargs):
+    try:
+        return requests.request(
+            method,
+            f"{API_URL}{endpoint}",
+            **kwargs
+        )
+    except requests.RequestException:
+        print("Unable to connect to the Flask API.")
+        print("Make sure the Flask server is running.")
+        return None
 
 def display_inventory():
     response = requests.get(f"{API_URL}/inventory")
