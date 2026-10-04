@@ -148,5 +148,40 @@ def search_products():
         "products": products
     })
 
+@app.route("/inventory/from-api/<barcode>", methods=["POST"])
+def add_product_from_api(barcode):
+    product = get_product_by_barcode(barcode)
+
+    if product is None:
+        return jsonify({"error": "Product not found in OpenFoodFacts"}), 404
+
+    if not request.is_json:
+        return jsonify({"error": "Request body is required"}), 400
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Request body is required"}), 400
+
+    if "price" not in data or "stock" not in data:
+        return jsonify({
+            "error": "Price and stock are required"
+        }), 400
+
+    new_item = {
+        "id": get_next_id(inventory),
+        "barcode": product["barcode"],
+        "product_name": product["product_name"],
+        "brand": product["brand"],
+        "category": product["category"],
+        "price": data["price"],
+        "stock": data["stock"],
+        "ingredients": product["ingredients"]
+    }
+
+    inventory.append(new_item)
+
+    return jsonify(new_item), 201
+
 if __name__ == "__main__":
     app.run(debug=True)

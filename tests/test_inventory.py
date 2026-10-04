@@ -209,3 +209,135 @@ def test_search_products_route_missing_name(client):
     data = response.get_json()
 
     assert data["error"] == "Product name is required"
+
+
+@patch("app.get_product_by_barcode")
+def test_add_product_from_api(mock_get_product, client):
+    mock_get_product.return_value = {
+        "barcode": "123456789",
+        "product_name": "Organic Almond Milk",
+        "brand": "Silk",
+        "category": "Plant-based milk",
+        "ingredients": "Water, almonds, sugar",
+    }
+
+    response = client.post(
+        "/inventory/from-api/123456789",
+        json={
+            "price": 350,
+            "stock": 20
+        }
+    )
+
+    assert response.status_code == 201
+
+    data = response.get_json()
+
+    assert data["id"] == 3
+    assert data["barcode"] == "123456789"
+    assert data["product_name"] == "Organic Almond Milk"
+    assert data["brand"] == "Silk"
+    assert data["category"] == "Plant-based milk"
+    assert data["price"] == 350
+    assert data["stock"] == 20
+    assert data["ingredients"] == "Water, almonds, sugar"
+
+    assert len(inventory) == 3
+
+    mock_get_product.assert_called_once_with("123456789")
+
+
+@patch("app.get_product_by_barcode")
+def test_add_product_from_api_not_found(mock_get_product, client):
+    mock_get_product.return_value = None
+
+    response = client.post(
+        "/inventory/from-api/000000000",
+        json={
+            "price": 350,
+            "stock": 20
+        }
+    )
+
+    assert response.status_code == 404
+
+    data = response.get_json()
+
+    assert data["error"] == "Product not found in OpenFoodFacts"
+
+    assert len(inventory) == 2
+
+
+@patch("app.get_product_by_barcode")
+def test_add_product_from_api_missing_body(mock_get_product, client):
+    mock_get_product.return_value = {
+        "barcode": "123456789",
+        "product_name": "Organic Almond Milk",
+        "brand": "Silk",
+        "category": "Plant-based milk",
+        "ingredients": "Water, almonds, sugar",
+    }
+
+    response = client.post(
+        "/inventory/from-api/123456789"
+    )
+
+    assert response.status_code == 400
+
+    data = response.get_json()
+
+    assert data["error"] == "Request body is required"
+
+    assert len(inventory) == 2
+
+
+@patch("app.get_product_by_barcode")
+def test_add_product_from_api_missing_price(mock_get_product, client):
+    mock_get_product.return_value = {
+        "barcode": "123456789",
+        "product_name": "Organic Almond Milk",
+        "brand": "Silk",
+        "category": "Plant-based milk",
+        "ingredients": "Water, almonds, sugar",
+    }
+
+    response = client.post(
+        "/inventory/from-api/123456789",
+        json={
+            "stock": 20
+        }
+    )
+
+    assert response.status_code == 400
+
+    data = response.get_json()
+
+    assert data["error"] == "Price and stock are required"
+
+    assert len(inventory) == 2
+
+
+@patch("app.get_product_by_barcode")
+def test_add_product_from_api_missing_stock(mock_get_product, client):
+    mock_get_product.return_value = {
+        "barcode": "123456789",
+        "product_name": "Organic Almond Milk",
+        "brand": "Silk",
+        "category": "Plant-based milk",
+        "ingredients": "Water, almonds, sugar",
+    }
+
+    response = client.post(
+        "/inventory/from-api/123456789",
+        json={
+            "price": 350
+        }
+    )
+
+    assert response.status_code == 400
+
+    data = response.get_json()
+
+    assert data["error"] == "Price and stock are required"
+
+    assert len(inventory) == 2
