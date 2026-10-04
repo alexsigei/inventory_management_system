@@ -2,6 +2,10 @@ from flask import Flask, jsonify, request
 
 from models import get_next_id
 from storage import inventory
+from services.openfoodfacts import (
+    get_product_by_barcode,
+    search_products_by_name
+)
 
 app = Flask(__name__)
 
@@ -116,6 +120,68 @@ def delete_inventory_item(item_id):
     return jsonify({
         "message": "Inventory item deleted successfully"
     })
+
+
+@app.route("/products/barcode/<barcode>", methods=["GET"])
+def find_product_by_barcode(barcode):
+    product = get_product_by_barcode(barcode)
+
+    if product is None:
+        return jsonify({
+            "error": "Product not found"
+        }), 404
+
+    return jsonify(product)
+
+@app.route("/products/search", methods=["GET"])
+def search_products():
+    name = request.args.get("name")
+
+    if not name:
+        return jsonify({
+            "error": "Product name is required"
+        }), 400
+
+    products = search_products_by_name(name)
+
+    return jsonify({
+        "products": products
+    })
+
+@app.route("/inventory/from-api/<barcode>", methods=["POST"])
+def add_product_from_api(barcode):
+    product = get_product_by_barcode(barcode)
+
+    if product is None:
+        return jsonify({"error": "Product not found in OpenFoodFacts"}), 404
+
+    if not request.is_json:
+        return jsonify({"error": "Request body is required"}), 400
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Request body is required"}), 400
+
+    if "price" not in data or "stock" not in data:
+        return jsonify({
+            "error": "Price and stock are required"
+        }), 400
+
+    new_item = {
+        "id": get_next_id(inventory),
+        "barcode": product["barcode"],
+        "product_name": product["product_name"],
+        "brand": product["brand"],
+        "category": product["category"],
+        "price": data["price"],
+        "stock": data["stock"],
+        "ingredients": product["ingredients"]
+    }
+
+    inventory.append(new_item)
+
+    return jsonify(new_item), 201
 
 if __name__ == "__main__":
     app.run(debug=True)
